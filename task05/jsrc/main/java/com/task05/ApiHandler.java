@@ -2,7 +2,7 @@ package com.task05;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -12,11 +12,10 @@ import com.syndicate.deployment.annotations.lambda.LambdaHandler;
 import com.task05.dto.Event;
 import com.task05.dto.LambdaRequest;
 import com.task05.dto.LambdaResponse;
+import com.task05.model.ItemRecord;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 @LambdaHandler(lambdaName = "api_handler",
@@ -25,8 +24,6 @@ import java.util.UUID;
 public class ApiHandler implements RequestHandler<LambdaRequest, LambdaResponse> {
     private AmazonDynamoDB amazonDynamoDB;
     private static final String REGION = "eu-central-1";
-    private static final String DYNAMODB_TABLE_NAME = "cmtr-985d4752-Events-test";
-
     public LambdaResponse handleRequest(LambdaRequest request, Context context) {
         this.initDynamoDbClient();
         Gson gson = new GsonBuilder().create();
@@ -41,7 +38,7 @@ public class ApiHandler implements RequestHandler<LambdaRequest, LambdaResponse>
     }
 
     private Event persistData(LambdaRequest request, Gson gson) {
-        Map<String, AttributeValue> attributesMap = new HashMap<>();
+
         String generatedId = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now();
 
@@ -49,12 +46,14 @@ public class ApiHandler implements RequestHandler<LambdaRequest, LambdaResponse>
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'");
         String formattedDateTime = now.format(formatter);
 
-        attributesMap.put("id", new AttributeValue(generatedId));
-        attributesMap.put("principalId", new AttributeValue(String.valueOf(request.getPrincipalId())));
-        attributesMap.put("createdAt", new AttributeValue(formattedDateTime));
-        attributesMap.put("body", new AttributeValue(gson.toJson(request.getContent())));
+        ItemRecord item = new ItemRecord();
+        item.setId(generatedId);
+        item.setPrincipalId(request.getPrincipalId());
+        item.setCreatedAt(formattedDateTime);
+        item.setBody(gson.toJson(request.getContent()));
 
-        amazonDynamoDB.putItem(DYNAMODB_TABLE_NAME, attributesMap);
+        DynamoDBMapper mapper = new DynamoDBMapper(amazonDynamoDB);
+        mapper.save(item);
 
         Event event = new Event();
         event.setBody(gson.toJson(request.getContent()));

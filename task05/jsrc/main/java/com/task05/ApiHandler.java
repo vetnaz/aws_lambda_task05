@@ -24,7 +24,7 @@ import java.util.UUID;
 public class ApiHandler implements RequestHandler<LambdaRequest, LambdaResponse> {
     private AmazonDynamoDB amazonDynamoDB;
     private static final String REGION = "eu-central-1";
-    private static final String DYNAMODB_TABLE_NAME = "Events";
+    private static final String DYNAMODB_TABLE_NAME = "cmtr-985d4752-Events-test";
 
     public LambdaResponse handleRequest(LambdaRequest request, Context context) {
         this.initDynamoDbClient();

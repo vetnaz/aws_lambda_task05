@@ -2,9 +2,7 @@ package com.task05;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
-import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
-import com.amazonaws.services.dynamodbv2.document.Table;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -16,6 +14,8 @@ import com.task05.dto.LambdaRequest;
 import com.task05.dto.LambdaResponse;
 import org.joda.time.DateTime;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @LambdaHandler(lambdaName = "api_handler",
@@ -28,7 +28,7 @@ public class ApiHandler implements RequestHandler<LambdaRequest, LambdaResponse>
 
     public LambdaResponse handleRequest(LambdaRequest request, Context context) {
         this.initDynamoDbClient();
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        Gson gson = new GsonBuilder().create();
         LambdaLogger logger = context.getLogger();
 
         logger.log("EVENT: " + gson.toJson(request));
@@ -40,18 +40,16 @@ public class ApiHandler implements RequestHandler<LambdaRequest, LambdaResponse>
     }
 
     private Event persistData(LambdaRequest request, Gson gson) {
+        Map<String, AttributeValue> attributesMap = new HashMap<>();
         String generatedId = UUID.randomUUID().toString();
         String createAt = DateTime.now().toString();
-        DynamoDB dynamoDB = new DynamoDB(amazonDynamoDB);
 
-        Item item = new Item()
-                .withString("id", generatedId)
-                .withInt("principalId", request.getPrincipalId())
-                .withString("createdAt", createAt)
-                .withString("body", gson.toJson(request.getContent()));
+        attributesMap.put("id", new AttributeValue(generatedId));
+        attributesMap.put("principalId", new AttributeValue(String.valueOf(request.getPrincipalId())));
+        attributesMap.put("createdAt", new AttributeValue(createAt));
+        attributesMap.put("body", new AttributeValue(gson.toJson(request.getContent())));
 
-        Table table = dynamoDB.getTable(DYNAMODB_TABLE_NAME);
-        table.putItem(item);
+        amazonDynamoDB.putItem(DYNAMODB_TABLE_NAME, attributesMap);
 
         Event event = new Event();
         event.setBody(gson.toJson(request.getContent()));

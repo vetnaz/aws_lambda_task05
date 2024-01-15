@@ -12,8 +12,9 @@ import com.syndicate.deployment.annotations.lambda.LambdaHandler;
 import com.task05.dto.Event;
 import com.task05.dto.LambdaRequest;
 import com.task05.dto.LambdaResponse;
-import org.joda.time.DateTime;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -42,11 +43,15 @@ public class ApiHandler implements RequestHandler<LambdaRequest, LambdaResponse>
     private Event persistData(LambdaRequest request, Gson gson) {
         Map<String, AttributeValue> attributesMap = new HashMap<>();
         String generatedId = UUID.randomUUID().toString();
-        String createAt = DateTime.now().toString();
+        LocalDateTime now = LocalDateTime.now();
+
+        // Format the date and time using a specific pattern
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'");
+        String formattedDateTime = now.format(formatter);
 
         attributesMap.put("id", new AttributeValue(generatedId));
         attributesMap.put("principalId", new AttributeValue(String.valueOf(request.getPrincipalId())));
-        attributesMap.put("createdAt", new AttributeValue(createAt));
+        attributesMap.put("createdAt", new AttributeValue(formattedDateTime));
         attributesMap.put("body", new AttributeValue(gson.toJson(request.getContent())));
 
         amazonDynamoDB.putItem(DYNAMODB_TABLE_NAME, attributesMap);
@@ -54,7 +59,7 @@ public class ApiHandler implements RequestHandler<LambdaRequest, LambdaResponse>
         Event event = new Event();
         event.setBody(gson.toJson(request.getContent()));
         event.setId(generatedId);
-        event.setCreatedAt(createAt);
+        event.setCreatedAt(formattedDateTime);
         event.setPrincipalId(request.getPrincipalId());
         return event;
     }

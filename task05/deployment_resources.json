@@ -15,7 +15,8 @@
             "ssm:PutParameter",
             "ssm:GetParameter",
             "kms:Decrypt",
-            "dynamodb:PutItem"
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem"
           ],
           "Effect": "Allow",
           "Resource": "*"

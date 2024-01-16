@@ -4,13 +4,15 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
 
+import java.util.Map;
+
 @DynamoDBTable(tableName = "cmtr-985d4752-Events-test")
 public class ItemRecord {
 
     private String id;
     private int principalId;
     private String createdAt;
-    private String body;
+    private Map<String, String> body;
 
 
     @DynamoDBHashKey(attributeName = "id")
@@ -41,11 +43,11 @@ public class ItemRecord {
     }
 
     @DynamoDBAttribute(attributeName = "body")
-    public String getBody() {
+    public Map<String, String> getBody() {
         return body;
     }
 
-    public void setBody(String body) {
+    public void setBody(Map<String, String> body) {
         this.body = body;
     }
 }

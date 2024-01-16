@@ -6,6 +6,7 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.syndicate.deployment.annotations.lambda.LambdaHandler;
@@ -14,8 +15,10 @@ import com.task05.dto.LambdaRequest;
 import com.task05.dto.LambdaResponse;
 import com.task05.model.ItemRecord;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.UUID;
 
 @LambdaHandler(lambdaName = "api_handler",
@@ -33,11 +36,15 @@ public class ApiHandler implements RequestHandler<LambdaRequest, LambdaResponse>
 
         LambdaResponse lambdaResponse = new LambdaResponse();
         lambdaResponse.setStatusCode(201);
-        lambdaResponse.setEvent(persistData(request, gson));
+        try {
+            lambdaResponse.setEvent(persistData(request, gson));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         return lambdaResponse;
     }
 
-    private Event persistData(LambdaRequest request, Gson gson) {
+    private Event persistData(LambdaRequest request, Gson gson) throws IOException {
 
         String generatedId = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now();
@@ -45,12 +52,13 @@ public class ApiHandler implements RequestHandler<LambdaRequest, LambdaResponse>
         // Format the date and time using a specific pattern
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'");
         String formattedDateTime = now.format(formatter);
+        HashMap body = new ObjectMapper().readValue(gson.toJson(request.getContent()), HashMap.class);
 
         ItemRecord item = new ItemRecord();
         item.setId(generatedId);
         item.setPrincipalId(request.getPrincipalId());
         item.setCreatedAt(formattedDateTime);
-        item.setBody(gson.toJson(request.getContent()));
+        item.setBody(body);
 
         DynamoDBMapper mapper = new DynamoDBMapper(amazonDynamoDB);
         mapper.save(item);
